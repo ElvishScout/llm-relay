@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: LLM Relay  # secrets 配置在这个 environment 下
     steps:
       - uses: actions/checkout@v4
 
