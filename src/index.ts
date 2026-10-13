@@ -21,8 +21,14 @@ export default {
     }
 
     const url = new URL(request.url);
+    // 自定义域名路由可能带前缀(如 api.example.com/openai/*),先剥离;
+    // 无前缀的请求(workers.dev 直连)不受影响
+    let pathname = url.pathname;
+    if (cfg.pathPrefix && pathname.startsWith(cfg.pathPrefix + '/')) {
+      pathname = pathname.slice(cfg.pathPrefix.length);
+    }
     try {
-      if (url.pathname === '/health') {
+      if (pathname === '/health') {
         return withCors(Response.json({ status: 'ok' }), request, cfg);
       }
       // 浏览器预检:不带凭据,先于鉴权处理
@@ -32,10 +38,10 @@ export default {
       if (!authorize(request, cfg)) {
         return withCors(openaiError(401, 'invalid_api_key', 'Missing or invalid API key'), request, cfg);
       }
-      if (url.pathname === '/v1/models' && request.method === 'GET') {
+      if (pathname === '/v1/models' && request.method === 'GET') {
         return withCors(listModels(cfg), request, cfg);
       }
-      const api = POST_ROUTES[url.pathname];
+      const api = POST_ROUTES[pathname];
       if (api && request.method === 'POST') {
         return withCors(await handleRelay(api, request, env, ctx, cfg), request, cfg);
       }

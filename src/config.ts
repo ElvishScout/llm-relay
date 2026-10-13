@@ -42,6 +42,7 @@ export interface AppConfig {
   quota: QuotaLimits | null;
   concurrency: ConcurrencyConfig | null;
   cors: CorsConfig | null;
+  pathPrefix: string; // 自定义域名路由的路径前缀(如 /openai),空串表示无前缀
 }
 
 interface RawProvider {
@@ -64,6 +65,7 @@ interface RawConfig {
   quota?: QuotaLimits;
   concurrency?: { max: number; ttlMs?: number };
   cors?: { origins: string[] };
+  pathPrefix?: string;
 }
 
 let cached: AppConfig | null = null;
@@ -109,6 +111,11 @@ export function loadConfig(): AppConfig {
     throw new Error('concurrency.max 必须是正整数');
   }
 
+  const prefix = raw.pathPrefix ?? '';
+  if (prefix && (!prefix.startsWith('/') || prefix.endsWith('/') || prefix.length === 1)) {
+    throw new Error('pathPrefix 必须形如 "/openai"(以 / 开头,不以 / 结尾)');
+  }
+
   cached = {
     accessKeys: raw.accessKeys ?? [],
     providers,
@@ -116,6 +123,7 @@ export function loadConfig(): AppConfig {
     quota: raw.quota ?? null,
     concurrency: cc ? { max: cc.max, ttlMs: cc.ttlMs ?? 300_000 } : null,
     cors: raw.cors && raw.cors.origins.length > 0 ? { origins: raw.cors.origins } : null,
+    pathPrefix: prefix,
   };
   return cached;
 }
