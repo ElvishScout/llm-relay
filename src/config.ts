@@ -31,12 +31,17 @@ export interface ConcurrencyConfig {
   ttlMs: number;  // 槽位租约时长,泄漏自动回收
 }
 
+export interface CorsConfig {
+  origins: string[]; // 允许的 Origin;"*" 表示任意来源
+}
+
 export interface AppConfig {
   accessKeys: string[];
   providers: Map<string, Provider>;
   modelMap: Map<string, ModelMapping>;
   quota: QuotaLimits | null;
   concurrency: ConcurrencyConfig | null;
+  cors: CorsConfig | null;
 }
 
 interface RawProvider {
@@ -58,6 +63,7 @@ interface RawConfig {
   models?: RawModel[];
   quota?: QuotaLimits;
   concurrency?: { max: number; ttlMs?: number };
+  cors?: { origins: string[] };
 }
 
 let cached: AppConfig | null = null;
@@ -109,6 +115,7 @@ export function loadConfig(): AppConfig {
     modelMap,
     quota: raw.quota ?? null,
     concurrency: cc ? { max: cc.max, ttlMs: cc.ttlMs ?? 300_000 } : null,
+    cors: raw.cors && raw.cors.origins.length > 0 ? { origins: raw.cors.origins } : null,
   };
   return cached;
 }

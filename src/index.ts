@@ -23,21 +23,25 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === '/health') {
-        return Response.json({ status: 'ok' });
+        return withCors(Response.json({ status: 'ok' }), request, cfg);
+      }
+      // 浏览器预检:不带凭据,先于鉴权处理
+      if (request.method === 'OPTIONS') {
+        return handlePreflight(request, cfg);
       }
       if (!authorize(request, cfg)) {
-        return openaiError(401, 'invalid_api_key', 'Missing or invalid API key');
+        return withCors(openaiError(401, 'invalid_api_key', 'Missing or invalid API key'), request, cfg);
       }
       if (url.pathname === '/v1/models' && request.method === 'GET') {
-        return listModels(cfg);
+        return withCors(listModels(cfg), request, cfg);
       }
       const api = POST_ROUTES[url.pathname];
       if (api && request.method === 'POST') {
-        return await handleRelay(api, request, env, ctx, cfg);
+        return withCors(await handleRelay(api, request, env, ctx, cfg), request, cfg);
       }
-      return openaiError(404, 'not_found', `Unknown path: ${url.pathname}`);
+      return withCors(openaiError(404, 'not_found', `Unknown path: ${url.pathname}`), request, cfg);
     } catch (e) {
-      return openaiError(500, 'internal_error', (e as Error).message);
+      return withCors(openaiError(500, 'internal_error', (e as Error).message), request, cfg);
     }
   },
 } satisfies ExportedHandler<Env>;
@@ -98,6 +102,38 @@ async function handleRelay(
     api, body, mapping, cfg, env, ctx,
     onDone: token ? () => releaseSlot(env, ctx, token) : undefined,
   });
+}
+
+// ---- CORS ----
+
+function allowOrigin(request: Request, cfg: AppConfig): string | null {
+  if (!cfg.cors) return null;
+  if (cfg.cors.origins.includes('*')) return '*';
+  const origin = request.headers.get('Origin');
+  return origin && cfg.cors.origins.includes(origin) ? origin : null;
+}
+
+// 给所有响应(含流式)补 CORS 头;流式 body 原样保留。
+function withCors(resp: Response, request: Request, cfg: AppConfig): Response {
+  const origin = allowOrigin(request, cfg);
+  if (!origin) return resp;
+  const wrapped = new Response(resp.body, resp);
+  wrapped.headers.set('Access-Control-Allow-Origin', origin);
+  if (origin !== '*') wrapped.headers.append('Vary', 'Origin');
+  return wrapped;
+}
+
+function handlePreflight(request: Request, cfg: AppConfig): Response {
+  const origin = allowOrigin(request, cfg);
+  if (!origin) return new Response(null, { status: 204 });
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
+  if (origin !== '*') headers['Vary'] = 'Origin';
+  return new Response(null, { status: 204, headers });
 }
 
 function openaiError(status: number, code: string, message: string): Response {

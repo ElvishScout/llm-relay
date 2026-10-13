@@ -36,5 +36,9 @@
   "concurrency": {
     "max": 20,
     "ttlMs": 300000
+  },
+
+  "cors": {
+    "origins": ["*"]
   }
 }
