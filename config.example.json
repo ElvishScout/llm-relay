@@ -1,0 +1,40 @@
+{
+  "accessKeys": ["sk-relay-change-me"],
+
+  "providers": {
+    "openai": {
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "sk-..."
+    },
+    "deepseek": {
+      "baseUrl": "https://api.deepseek.com/v1",
+      "apiKey": "sk-..."
+    }
+  },
+
+  "models": [
+    {
+      "name": "gpt-4o",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "pricing": { "input": 2.5, "output": 10 }
+    },
+    {
+      "name": "fast-chat",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "pricing": { "input": 0.3, "output": 1.2 }
+    }
+  ],
+
+  "quota": {
+    "costPer5Hours": 2,
+    "costPerWeek": 10,
+    "costPerMonth": 40
+  },
+
+  "concurrency": {
+    "max": 20,
+    "ttlMs": 300000
+  }
+}

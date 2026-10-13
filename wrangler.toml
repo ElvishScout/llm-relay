@@ -1,0 +1,12 @@
+name = "llm-relay"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+
+# 全局状态(并发信号量 + 额度计数 + 用量日志),单例 DO,自带 SQLite
+[[durable_objects.bindings]]
+name = "STATE"
+class_name = "RelayState"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RelayState"]

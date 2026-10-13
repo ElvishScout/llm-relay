@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+
+# 真实配置不进 git，模板见 config.example.json
+config.json

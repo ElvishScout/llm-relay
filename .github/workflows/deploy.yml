@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck --if-present
+
+      # 配置不进 git:整份 config.json 文本存 GitHub Secret,部署时还原。
+      # 用环境变量传入而非内联进命令,避免单引号/特殊字符截断。
+      - name: Restore config
+        env:
+          RELAY_CONFIG: ${{ secrets.RELAY_CONFIG }}
+        run: |
+          printf '%s' "$RELAY_CONFIG" > config.json
+          node -e "JSON.parse(require('fs').readFileSync('config.json','utf8')); console.log('config.json OK')"
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
