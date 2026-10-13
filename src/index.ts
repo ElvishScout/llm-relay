@@ -126,10 +126,12 @@ function withCors(resp: Response, request: Request, cfg: AppConfig): Response {
 function handlePreflight(request: Request, cfg: AppConfig): Response {
   const origin = allowOrigin(request, cfg);
   if (!origin) return new Response(null, { status: 204 });
+  // 回显请求头列表:OpenAI SDK 会带 x-stainless-* 等遥测头,逐个列举不如反射
+  const reqHeaders = request.headers.get('Access-Control-Request-Headers');
   const headers: Record<string, string> = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    'Access-Control-Allow-Headers': reqHeaders ?? 'Authorization, Content-Type',
     'Access-Control-Max-Age': '86400',
   };
   if (origin !== '*') headers['Vary'] = 'Origin';
