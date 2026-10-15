@@ -10,3 +10,6 @@ class_name = "RelayState"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["RelayState"]
+
+[observability]
+enabled = true
